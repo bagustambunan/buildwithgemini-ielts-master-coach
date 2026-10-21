@@ -31,13 +31,12 @@ import uuid
 import google.auth
 import google.auth.transport.requests
 import httpx
-from a2a.client import ClientConfig, ClientFactory
+from a2a.client import ClientConfig, create_client
 from a2a.types import (
-    AgentCard,
     Message,
     Part,
     Role,
-    TaskArtifactUpdateEvent,
+    SendMessageRequest,
 )
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
@@ -111,21 +110,6 @@ async def _json_errors(request: Request, exc: Exception):
 
 # Reuse ONE A2A context per user so the agent remembers the conversation.
 _contexts: dict[str, str] = {}
-# Cache the agent card after the first fetch.
-_card: AgentCard | None = None
-
-
-async def _get_card(client: httpx.AsyncClient) -> AgentCard:
-    global _card
-    if _card is None:
-        resp = await client.get(A2A_CARD_URL)
-        resp.raise_for_status()
-        card = AgentCard(**resp.json())
-        # Agent Runtime does not serve a public card URL, so point the client at
-        # the passthrough base for message sends.
-        card.url = A2A_BASE
-        _card = card
-    return _card
 
 
 def _extract_parts(parts: list) -> list[dict]:
@@ -174,45 +158,42 @@ async def chat(req: Request):
     parts: list[dict] = []
 
     async with httpx.AsyncClient(headers=_auth_headers(), timeout=120) as client:
-        card = await _get_card(client)
-        factory = ClientFactory(
-            ClientConfig(
-                httpx_client=client,
-            )
+        a2a_client = await create_client(
+            A2A_BASE,
+            client_config=ClientConfig(httpx_client=client),
         )
-        a2a_client = factory.create(card)
 
         msg = Message(
             message_id=str(uuid.uuid4()),
-            role=Role.user,
+            role=Role.ROLE_USER,
             parts=[Part(text=message)],
             context_id=_contexts.get(user_id),
         )
+        req_obj = SendMessageRequest(message=msg)
 
-        last_task = None
-        got_artifact_update = False
-        async for event in a2a_client.send_message(msg):
-            if not isinstance(event, tuple):
-                continue
-            task, update = event
-            if task is not None:
-                last_task = task
-                if getattr(task, "context_id", None):
-                    _contexts[user_id] = task.context_id
-            if isinstance(update, TaskArtifactUpdateEvent):
-                got_artifact_update = True
-                parts.extend(_extract_parts(update.artifact.parts))
+        status_parts: list[dict] = []
+        artifact_parts: list[dict] = []
+        async for event in a2a_client.send_message(req_obj):
+            if event.HasField("artifact_update"):
+                artifact_parts.extend(_extract_parts(event.artifact_update.artifact.parts))
+            elif event.HasField("status_update"):
+                su = event.status_update
+                if su.context_id:
+                    _contexts[user_id] = su.context_id
+                if su.status.HasField("message"):
+                    status_parts.extend(_extract_parts(su.status.message.parts))
+            elif event.HasField("task"):
+                if event.task.context_id:
+                    _contexts[user_id] = event.task.context_id
+            elif event.HasField("message"):
+                status_parts.extend(_extract_parts(event.message.parts))
 
-        # Non-streaming fallback: pull parts from the final task's artifacts.
-        if not got_artifact_update and last_task is not None:
-            for artifact in getattr(last_task, "artifacts", None) or []:
-                parts.extend(_extract_parts(artifact.parts))
+        parts = artifact_parts if artifact_parts else status_parts
 
     if not parts:
         # The turn produced no text or UI (e.g. the agent only ran tools, or a
         # tool stalled). Be honest rather than silent.
         parts = [{"kind": "text", "text": "(The agent didn't return a reply.)"}]
-    return JSONResponse({"parts": parts})
     return JSONResponse({"parts": parts})
 
 
