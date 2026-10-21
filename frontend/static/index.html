@@ -147,9 +147,9 @@ function buildNode(id, comps, seen) {
     case "Divider":
       return el("hr", "a2divider");
     case "Image": {
-      const src = boundStr(props.url || props.src);
+      const src = boundStr(props.url || props.src || props.imageUrl);
       if (!/^https?:\/\//i.test(src)) return null;   // only allow safe URLs
-      const img = el("img", "a2img"); img.src = src; img.alt = boundStr(props.alt) || ""; return img;
+      const img = el("img", "a2img"); img.src = src; img.alt = boundStr(props.alt) || "IELTS Chart"; return img;
     }
     case "Icon": {
       const s = el("span", "material-symbols-outlined"); s.textContent = iconName(boundStr(props.name) || props.name); return s;
@@ -168,6 +168,11 @@ function renderSurface(messages, container) {
     if (m.beginRendering && typeof m.beginRendering.root === "string") roots.push(m.beginRendering.root);
     const su = m.surfaceUpdate;
     if (su && Array.isArray(su.components)) for (const c of su.components) if (c && c.id && c.component) comps[c.id] = c.component;
+    // Also handle direct array of component objects [{card: {...}}]
+    if (m.card) {
+      comps["root_card"] = { Card: m.card };
+      roots.push("root_card");
+    }
   }
   let rootIds = roots.filter(r => comps[r]);
   if (rootIds.length === 0) {   // no valid root given -> infer un-referenced components
@@ -190,13 +195,35 @@ function flattenText(messages) {
   return out.join("\n").trim();
 }
 
+function renderTextWithImages(container, text) {
+  // Regex to match markdown images: ![alt](url)
+  const imgRegex = /!\[([^\]]*)\]\((https?:\/\/[^\s\)]+)\)/g;
+  let lastIndex = 0;
+  let match;
+  while ((match = imgRegex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      container.appendChild(el("div", null, text.substring(lastIndex, match.index)));
+    }
+    const img = el("img", "a2img");
+    img.src = match[2];
+    img.alt = match[1] || "IELTS Visualization";
+    container.appendChild(img);
+    lastIndex = imgRegex.lastIndex;
+  }
+  if (lastIndex < text.length) {
+    container.appendChild(el("div", null, text.substring(lastIndex)));
+  }
+}
+
 function renderReply(b, parts) {
   b.textContent = "";   // clear the "…" placeholder
   const texts = parts.filter(p => p && (p.kind === "text" || (!p.kind && p.text))).map(p => p.text || "");
   const a2ui = parts.filter(p => p && p.kind === "a2ui" && p.data).map(p => p.data);
 
-  const textStr = texts.join("\n").trim();
-  if (textStr) b.appendChild(el("div", null, textStr));
+  const textStr = texts.join("\n\n").trim();
+  if (textStr) {
+    renderTextWithImages(b, textStr);
+  }
 
   if (a2ui.length) {
     b.classList.add("rich");

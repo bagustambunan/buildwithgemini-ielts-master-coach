@@ -241,14 +241,9 @@ def a2ui_callback(
         _sanitize_image_components(messages)
 
         if not _surface_is_renderable(messages):
-            # We recognized A2UI but couldn't recover a renderable surface — the
-            # model emitted invalid JSON, a missing surface body, or an undefined
-            # root/child reference. Return clean text instead of a blank card.
-            return LlmResponse(
-                content=types.Content(
-                    role="model", parts=[types.Part(text=_FALLBACK_TEXT)]
-                )
-            )
+            # We recognized partial A2UI but couldn't recover a fully valid surface.
+            # Preserve the original text so model prose and markdown images are shown.
+            return None
 
         new_parts = [_wrap_a2ui_part(m) for m in messages]
         return LlmResponse(

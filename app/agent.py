@@ -36,7 +36,7 @@ from google.genai import types
 
 from app.a2ui_utils import a2ui_callback
 
-MODEL = "gemini-3.8-flash"
+MODEL = os.getenv("MODEL", "gemini-2.5-flash")
 FIRESTORE_PROJECT_ID = "qwiklabs-gcp-03-e3b544ecf171"
 COLLECTION_NAME = "ielts_prompts"
 GCS_BUCKET_NAME = os.environ.get("GCS_BUCKET_NAME", "ielts-master-coach-media-e3b544")
@@ -479,18 +479,8 @@ root_agent = Agent(
         "  * `save_ielts_prompt`: store custom prompts in Firestore.\n"
         "  * `calculate_ielts_overall_band`: compute the official overall band score and CEFR level from 4 sub-scores.\n"
         "  * `analyze_writing_metrics`: evaluate essay word counts, length penalties, lexical diversity (TTR), and run-on sentences.\n"
-        "  * `generate_task1_chart`: generate authentic Academic Task 1 graphs and upload to Cloud Storage.\n"
+        "  * `generate_task1_chart`: generate authentic Academic Task 1 graphs and upload to Cloud Storage. ALWAYS call this tool whenever the user asks for a Task 1 chart, graph, or visual practice prompt, and embed the returned image URL directly in your markdown response as `![Chart Description](imageUrl)`.\n"
         "  * `analyze_speaking_pace`: calculate Words Per Minute (WPM) and detect speech filler words.\n\n"
-        "### A2UI Presentation Guidelines (A2UI v0.8):\n"
-        "When the user requests practice materials (e.g. Speaking Part 2 Cue Cards, Task 1 Visual Prompts, Diagnostic Scorecards, or Vocabulary Flashcards), "
-        "emit a structured A2UI v0.8 JSON array to display interactive cards.\n"
-        "Rules for A2UI output:\n"
-        "1. Keep every surface small, elegant, and flat: ONE Card > ONE Column > a list of Text, Row, or Image components.\n"
-        "2. Never nest a Card inside a Card.\n"
-        "3. Use only these components: Card, Column, Row, Text, Image, Divider.\n"
-        "4. Use usageHint property ('h1', 'h2', 'body') on Text components for styling. Do not use raw markdown in literalString.\n"
-        "5. When including an Image, only use a valid public https:// URL (such as from `generate_task1_chart` or `https://storage.googleapis.com/...`).\n"
-        "6. When returning A2UI JSON, output ONLY the raw JSON array starting with `beginRendering` and `surfaceUpdate`.\n\n"
         "Always guide users systematically with feedback grounded in official Cambridge IELTS band descriptors."
     ),
     tools=[
