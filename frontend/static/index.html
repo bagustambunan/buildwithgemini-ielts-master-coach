@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IELTS Master Coach — AI Band 8.5 Preparation & Speaking Simulator</title>
+<!-- Optional: used only to draw A2UI Icon components. If it can't load (offline/
+     corp network), icons fall back to showing their name as text. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined">
+<style>
+  :root { --accent:#1a73e8; --accent-hover:#1557b0; --bg:#f8f9fa; --border:#dadce0; --card-bg:#ffffff; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; background:var(--bg); display:flex; flex-direction:column; height:100vh; color:#202124; }
+  header { background:#1a73e8; color:#fff; padding:0.8rem 1.2rem; display:flex; justify-content:space-between; align-items:center; box-shadow:0 1px 3px rgba(0,0,0,0.12); }
+  .header-title { font-weight:700; font-size:1.1rem; display:flex; align-items:center; gap:0.5rem; }
+  .header-badge { font-size:0.75rem; background:rgba(255,255,255,0.2); padding:0.2rem 0.6rem; border-radius:12px; font-weight:500; }
+  #log { flex:1; overflow-y:auto; padding:1.2rem; max-width:860px; width:100%; margin:0 auto; }
+  .msg { margin:.75rem 0; }
+  .msg.user { text-align:right; }
+  .bubble { display:inline-block; padding:.75rem 1rem; border-radius:14px; background:#fff; border:1px solid var(--border); text-align:left; max-width:88%; white-space:pre-wrap; line-height:1.5; font-size:0.95rem; box-shadow:0 1px 2px rgba(0,0,0,0.04); }
+  .msg.user .bubble { background:var(--accent); color:#fff; border:none; }
+  /* When the reply is an A2UI card, drop the bubble chrome so the card stands alone. */
+  .bubble.rich { background:transparent; border:none; padding:0; max-width:100%; white-space:normal; box-shadow:none; }
+  
+  /* Quick action chips */
+  .chips-bar { display:flex; gap:0.5rem; overflow-x:auto; padding:0.5rem 1rem; background:#fff; border-top:1px solid var(--border); max-width:860px; width:100%; margin:0 auto; }
+  .chip { background:#f1f3f4; border:1px solid #dadce0; border-radius:16px; padding:0.35rem 0.8rem; font-size:0.82rem; font-weight:500; color:#3c4043; cursor:pointer; white-space:nowrap; transition:all 0.15s ease; }
+  .chip:hover { background:#e8f0fe; color:var(--accent); border-color:#aecbfa; }
+  
+  form { display:flex; gap:.5rem; padding:0.8rem 1rem; border-top:1px solid var(--border); background:#fff; max-width:860px; width:100%; margin:0 auto; }
+  input { flex:1; padding:.75rem 1rem; border:1px solid var(--border); border-radius:24px; font-size:0.95rem; outline:none; transition:border-color 0.15s ease; }
+  input:focus { border-color:var(--accent); }
+  .btn { padding:.75rem 1.2rem; border:none; border-radius:24px; background:var(--accent); color:#fff; font-weight:600; cursor:pointer; font-size:0.9rem; transition:background 0.15s ease; display:flex; align-items:center; gap:0.3rem; }
+  .btn:hover { background:var(--accent-hover); }
+  .btn-mic { background:#f1f3f4; color:#3c4043; border:1px solid var(--border); border-radius:50%; width:44px; height:44px; padding:0; justify-content:center; }
+  .btn-mic.recording { background:#ea4335; color:#fff; animation:pulse 1.2s infinite; }
+  @keyframes pulse { 0% { transform:scale(1); } 50% { transform:scale(1.08); } 100% { transform:scale(1); } }
+
+  /* --- A2UI component styles (Card, Column, Row, Text, Divider, List, Image, Icon) --- */
+  .a2card { border:1px solid var(--border); border-radius:14px; padding:1.2rem; background:#fff; box-shadow:0 2px 6px rgba(60,64,67,0.08); max-width:100%; margin-top:0.4rem; }
+  .a2card + .a2card, .a2col > .a2card { margin-top:.6rem; }
+  .a2col { display:flex; flex-direction:column; gap:.5rem; }
+  .a2row { display:flex; flex-direction:row; gap:.6rem; align-items:center; flex-wrap:wrap; }
+  .a2row.between { justify-content:space-between; }
+  .a2text { margin:0; line-height:1.5; }
+  .a2text.a2-h1 { font-size:1.4rem; font-weight:700; color:#1a73e8; }
+  .a2text.a2-h2 { font-size:1.15rem; font-weight:700; color:#202124; }
+  .a2text.a2-h3 { font-size:1.02rem; font-weight:600; color:#3c4043; }
+  .a2text.a2-h4 { font-size:0.95rem; font-weight:600; color:#3c4043; }
+  .a2text.a2-caption { font-size:.85rem; color:#5f6368; }
+  .a2divider { border:none; border-top:1px solid var(--border); margin:.5rem 0; width:100%; }
+  .a2img { max-width:100%; border-radius:10px; display:block; border:1px solid var(--border); margin:0.4rem 0; }
+  .material-symbols-outlined { font-family:'Material Symbols Outlined'; font-size:1.25rem; line-height:1; vertical-align:middle; color:var(--accent); }
+</style>
+</head>
+<body>
+<header>
+  <div class="header-title">
+    <span>🎯 IELTS Master Coach</span>
+  </div>
+  <div class="header-badge">Band 8.5 AI Simulator • A2UI</div>
+</header>
+<div id="log"></div>
+<div class="chips-bar">
+  <button type="button" class="chip" onclick="sendPrompt('Berikan saya cue card Speaking Part 2 tentang Environment beserta timer persiapan')">🎴 Speaking Part 2 Cue Card</button>
+  <button type="button" class="chip" onclick="sendPrompt('Hitung overall band IELTS saya jika listening 7.5, reading 7.0, writing 6.0, speaking 6.5')">📊 Hitung Overall Band</button>
+  <button type="button" class="chip" onclick="sendPrompt('Generate grafik Task 1 tentang Renewable Energy dan berikan instruksi laporannya')">📈 Generate Grafik Task 1</button>
+  <button type="button" class="chip" onclick="sendPrompt('Berikan daftar kolokasi akademik tingkat tinggi (Band 8+) untuk topik Education')">📖 Academic Collocations</button>
+</div>
+<form id="form">
+  <button type="button" id="micBtn" class="btn btn-mic" title="Voice Speaking Practice (Click to Speak)">🎙️</button>
+  <input id="input" placeholder="Tanyakan strategi IELTS, kirim esai, atau minta kartu simulasi Speaking…" autocomplete="off" autofocus>
+  <button class="btn">Kirim</button>
+</form>
+
+<script>
+const log = document.getElementById("log");
+const form = document.getElementById("form");
+const input = document.getElementById("input");
+
+function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+
+function bubble(who) {
+  const m = el("div", "msg " + who);
+  const b = el("div", "bubble");
+  m.appendChild(b); log.appendChild(m); log.scrollTop = log.scrollHeight;
+  return b;
+}
+
+/* ----------------------------------------------------------------------------
+ * A2UI mini-renderer (v0.8 Basic Catalog subset).
+ * Renders Card / Column / Row / Text / Divider / List / Image / Icon.
+ * Anything else falls back to plain text (see renderReply). All text goes in via
+ * textContent and image URLs are validated, so agent output can't inject HTML.
+ * -------------------------------------------------------------------------- */
+
+// A "bound value" is usually {literalString: "..."}; we only support literals.
+function boundStr(v) {
+  if (v == null) return "";
+  if (typeof v === "string") return v;
+  if (typeof v.literalString === "string") return v.literalString;
+  return "";
+}
+
+// child ids of a component's props: single `child` and/or `children.explicitList`.
+function childIds(props) {
+  const ids = [];
+  if (props && typeof props.child === "string") ids.push(props.child);
+  const ch = props && props.children;
+  if (ch && Array.isArray(ch.explicitList)) for (const c of ch.explicitList) if (typeof c === "string") ids.push(c);
+  return ids;
+}
+
+// A2UI icon names are camelCase (locationOn); Material Symbols wants snake_case.
+function iconName(n) { return String(n || "").replace(/([a-z0-9])([A-Z])/g, "$1_$2").replace(/\s+/g, "_").toLowerCase(); }
+
+function buildNode(id, comps, seen) {
+  if (!id || seen.has(id)) return null;   // missing / cycle guard
+  seen.add(id);
+  const spec = comps[id];
+  if (!spec || typeof spec !== "object") return null;
+  const type = Object.keys(spec)[0];
+  const props = spec[type] || {};
+  const kids = () => childIds(props).map(cid => buildNode(cid, comps, seen)).filter(Boolean);
+
+  switch (type) {
+    case "Card": {
+      const d = el("div", "a2card"); kids().forEach(n => d.appendChild(n)); return d;
+    }
+    case "Column":
+    case "List": {
+      const horizontal = type === "List" && props.direction === "horizontal";
+      const d = el("div", horizontal ? "a2row" : "a2col"); kids().forEach(n => d.appendChild(n)); return d;
+    }
+    case "Row": {
+      const d = el("div", "a2row" + (props.distribution === "spaceBetween" ? " between" : ""));
+      kids().forEach(n => d.appendChild(n)); return d;
+    }
+    case "Text": {
+      const t = el("div", "a2text");
+      const hint = String(props.usageHint || "body").toLowerCase();
+      if (["h1", "h2", "h3", "h4", "h5", "h6"].includes(hint)) t.classList.add("a2-" + hint);
+      else if (hint === "caption") t.classList.add("a2-caption");
+      t.textContent = boundStr(props.text);
+      return t;
+    }
+    case "Divider":
+      return el("hr", "a2divider");
+    case "Image": {
+      const src = boundStr(props.url || props.src);
+      if (!/^https?:\/\//i.test(src)) return null;   // only allow safe URLs
+      const img = el("img", "a2img"); img.src = src; img.alt = boundStr(props.alt) || ""; return img;
+    }
+    case "Icon": {
+      const s = el("span", "material-symbols-outlined"); s.textContent = iconName(boundStr(props.name) || props.name); return s;
+    }
+    default:
+      return null;   // unknown component -> skipped (text fallback covers content)
+  }
+}
+
+// Render one or more A2UI messages (beginRendering + surfaceUpdate) into `container`.
+// Returns true if anything was drawn.
+function renderSurface(messages, container) {
+  const comps = {};
+  const roots = [];
+  for (const m of messages) {
+    if (m.beginRendering && typeof m.beginRendering.root === "string") roots.push(m.beginRendering.root);
+    const su = m.surfaceUpdate;
+    if (su && Array.isArray(su.components)) for (const c of su.components) if (c && c.id && c.component) comps[c.id] = c.component;
+  }
+  let rootIds = roots.filter(r => comps[r]);
+  if (rootIds.length === 0) {   // no valid root given -> infer un-referenced components
+    const referenced = new Set();
+    for (const id in comps) { const spec = comps[id]; childIds(spec[Object.keys(spec)[0]] || {}).forEach(c => referenced.add(c)); }
+    rootIds = Object.keys(comps).filter(id => !referenced.has(id));
+  }
+  let drew = false;
+  for (const rid of rootIds) { const node = buildNode(rid, comps, new Set()); if (node) { container.appendChild(node); drew = true; } }
+  return drew;
+}
+
+// Fallback: pull every Text value out of the messages as plain text.
+function flattenText(messages) {
+  const out = [];
+  for (const m of messages) {
+    const su = m.surfaceUpdate;
+    if (su && Array.isArray(su.components)) for (const c of su.components) if (c && c.component && c.component.Text) out.push(boundStr(c.component.Text.text));
+  }
+  return out.join("\n").trim();
+}
+
+function renderReply(b, parts) {
+  b.textContent = "";   // clear the "…" placeholder
+  const texts = parts.filter(p => p && (p.kind === "text" || (!p.kind && p.text))).map(p => p.text || "");
+  const a2ui = parts.filter(p => p && p.kind === "a2ui" && p.data).map(p => p.data);
+
+  const textStr = texts.join("\n").trim();
+  if (textStr) b.appendChild(el("div", null, textStr));
+
+  if (a2ui.length) {
+    b.classList.add("rich");
+    if (!renderSurface(a2ui, b)) b.appendChild(el("div", null, flattenText(a2ui) || "(no card content)"));
+  }
+  if (!b.childNodes.length) b.textContent = "(no response)";
+  log.scrollTop = log.scrollHeight;
+}
+
+async function sendMessage(text) {
+  if (!text) return;
+  bubble("user").textContent = text;
+  input.value = "";
+  const b = bubble("agent"); b.textContent = "…";
+  try {
+    const res = await fetch("/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: text }) });
+    const raw = await res.text();
+    let data;
+    try { data = JSON.parse(raw); }
+    catch { throw new Error(`Server returned non-JSON (HTTP ${res.status}). ${raw.slice(0, 300)}`); }
+    renderReply(b, data.parts || []);
+  } catch (e) {
+    b.textContent = "Error: " + e.message;
+  }
+}
+
+function sendPrompt(text) {
+  sendMessage(text);
+}
+
+// The proxy returns { parts: [{kind:"text",text} | {kind:"a2ui",data}] }.
+form.addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const text = input.value.trim();
+  sendMessage(text);
+});
+
+// Voice Input support for Speaking Practice
+const micBtn = document.getElementById("micBtn");
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (SpeechRecognition) {
+  const recognition = new SpeechRecognition();
+  recognition.continuous = false;
+  recognition.interimResults = false;
+  recognition.lang = "en-US";
+
+  let isRecording = false;
+  micBtn.addEventListener("click", () => {
+    if (isRecording) {
+      recognition.stop();
+      micBtn.classList.remove("recording");
+      isRecording = false;
+    } else {
+      try {
+        recognition.start();
+        micBtn.classList.add("recording");
+        isRecording = true;
+      } catch (err) {
+        console.error("Speech recognition error:", err);
+      }
+    }
+  });
+
+  recognition.onresult = (event) => {
+    const transcript = event.results[0][0].transcript;
+    input.value = (input.value ? input.value + " " : "") + transcript;
+    micBtn.classList.remove("recording");
+    isRecording = false;
+  };
+
+  recognition.onerror = () => {
+    micBtn.classList.remove("recording");
+    isRecording = false;
+  };
+
+  recognition.onend = () => {
+    micBtn.classList.remove("recording");
+    isRecording = false;
+  };
+} else {
+  micBtn.title = "Voice recognition not supported in this browser";
+  micBtn.style.opacity = "0.5";
+}
+</script>
+</body>
+</html>
