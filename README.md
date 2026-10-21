@@ -67,6 +67,16 @@ ielts-master-coach/
 
 ### 2. Launch Local Web Chat Frontend
 ```bash
-cd frontend && python main.py
+PORT=8081 python frontend/main.py
 ```
-Open your browser at `http://localhost:8080` to chat with **IELTS Master Coach**, practice with the microphone, or click quick-action prompt chips!
+Open your browser at `http://localhost:8081` to chat with **IELTS Master Coach**, practice with the microphone, or click quick-action prompt chips!
+
+---
+
+## 🎥 Demo Video & Automated Recording
+
+- **Demo Video:** [`demo_video.mp4`](./demo_video.mp4) demonstrates Speaking Cue Card Simulation, Visual Chart Generation, and Official Cambridge Band Scoring.
+- **Run Automated Demo Recording:**
+  ```bash
+  python record_demo.py
+  ```
